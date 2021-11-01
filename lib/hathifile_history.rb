@@ -100,6 +100,7 @@ class HathifileHistory
   end
 
   def self.new_from_ndj(filename, only_moved_htids: false)
+    take_everything = !only_moved_htids
     hh       = self.new
     process = "load #{filename}"
     hh.logger.info process
@@ -108,7 +109,7 @@ class HathifileHistory
       histline = JSON.parse(line, create_additions: true)
       case histline
         when HTIDHistory
-          hh.htids[histline.id] = histline if (!only_moved_htids or histline.moved?)
+          hh.htids[histline.id] = histline if (take_everything or histline.moved?)
         when RecIDHistory
           hh.recids[histline.id] = histline
         else
