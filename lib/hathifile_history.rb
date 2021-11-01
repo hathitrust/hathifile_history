@@ -57,7 +57,7 @@ class HathifileHistory
     rescue => e
       if !errored
         errored = true
-        line    = line.force_encoding('utf-8')
+        line    = line.b
         retry
       else
         logger.warn "(#{e}) -- #{line}"
