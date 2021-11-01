@@ -2,6 +2,6 @@ source 'https://rubygems.org'
 
 gem 'zinzout'
 
-gem 'waypoint', path: '../waypoint'
+gem 'waypoint'
 
 gem 'pry'
