@@ -5,6 +5,7 @@ require 'zinzout'
 
 filename = ARGV.shift
 
+# Here we don't bother to load in the whole data structure; we can do what we need with just the raw JSON
 Zinzout.zin(filename).each do |line|
   h = JSON.parse(line)
   next unless h['json_class'.freeze] == 'HTIDHistory'.freeze
