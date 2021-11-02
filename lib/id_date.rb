@@ -25,8 +25,9 @@ class IDDate
     { id: @id, dt: @dt }
   end
 
-  def to_json(**kwargs)
-    { id: @id, dt: @dt, @json_create_id => @classname}.to_json(**kwargs)
+
+  def to_json(*args)
+    { id: @id, dt: @dt, @json_create_id => @classname}.to_json(*args)
   end
 
   def self.json_create(obj)

@@ -4,20 +4,19 @@ require 'set'
 require 'json'
 require_relative 'id_date'
 
-
 class GenericHistory
 
   attr_reader :id, :appearances
   attr_accessor :most_recent_appearance
 
   def initialize(id)
-    @id = id.freeze
+    @id                     = id.freeze
     @most_recent_appearance = 0
-    @appearances = []
-    @id_set = Set.new
+    @appearances            = []
+    @id_set                 = Set.new
 
     @json_create_id = JSON.create_id.freeze
-    @classname = self.class.name.freeze
+    @classname      = self.class.name.freeze
   end
 
   # @param [IDDate] iddate
@@ -33,7 +32,6 @@ class GenericHistory
     @id_set
   end
 
-
   def to_h(opts = {}.freeze)
     { id:                     @id,
       most_recent_appearance: @most_recent_appearance,
@@ -41,14 +39,15 @@ class GenericHistory
     }
   end
 
-
   def to_json(*args)
     {
       id:                     @id,
       most_recent_appearance: @most_recent_appearance,
       appearances:            @appearances,
-      @json_create_id => @classname
-    }.to_json
+      @json_create_id         => @classname
+    }.to_json(*args)
+  rescue => e
+    require 'pry'; binding.pry
   end
 
 
@@ -63,6 +62,5 @@ class GenericHistory
     puts "ERROR #{e} with "
     pp obj
   end
-
 
 end

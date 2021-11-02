@@ -45,6 +45,20 @@ class HathifileHistory
     @recid_history[recid] ||= RecIDHistory.new(recid)
   end
 
+  def has_htid(htid)
+    htid_history_hash.has_key?(htid)
+  end
+
+  def has_recid(recid)
+    recid_history_hash.has_key?(recid)
+  end
+
+  def current_record(htid)
+    return nil unless has_htid(htid)
+    apps = htid_history(htid).appearances.sort { |a, b| a.dt <=> b.dt }
+    recid_history(apps.last.id)
+  end
+
   def add_hathifile_line_by_date(line, dt)
     errored = false
     begin
@@ -65,13 +79,21 @@ class HathifileHistory
     end
   end
 
-  def add_monthly(filename)
-    fulldate     = filename.gsub(/\D/, '')
-    yearmonth    = fulldate[0..-3].to_i
-    cnt          = 0
+  def self.yyyymm_from_filename(filename)
+    fulldate  = filename.gsub(/\D/, '')
+    yyyymm = Integer(fulldate[0..-3])
+  end
+
+  def yyyymm_from_filename(*args)
+    self.class.yyyymm_from_filename(*args)
+  end
+
+  def add_monthly(filename, yearmonth: nil)
+    yearmonth ||= yyyymm_from_filename(filename)
+
     process_name = "add from #{filename}"
     logger.info process_name
-    waypoint = Waypoint.new(batch_size: 1_000_000, file_or_process: process_name)
+    waypoint = Waypoint.new(batch_size: 2_000_000, file_or_process: process_name)
     Zinzout.zin(filename).each do |line|
       self.add_hathifile_line_by_date(line, yearmonth)
       waypoint.incr
@@ -83,7 +105,7 @@ class HathifileHistory
   def dump_to_ndj(filename)
     process = "dump to #{filename}"
     logger.info process
-    waypoint = Waypoint.new(batch_size: 1_000_000, file_or_process: process )
+    waypoint = Waypoint.new(batch_size: 2_000_000, file_or_process: process)
     Zinzout.zout(filename) do |out|
       htid_history_hash.each_pair do |_, htidhist|
         out.puts htidhist.to_json
@@ -101,10 +123,10 @@ class HathifileHistory
 
   def self.new_from_ndj(filename, only_moved_htids: false)
     take_everything = !only_moved_htids
-    hh       = self.new
-    process = "load #{filename}"
+    hh              = self.new
+    process         = "load #{filename}"
     hh.logger.info process
-    waypoint = Waypoint.new(batch_size: 1_000_000, file_or_process: process)
+    waypoint = Waypoint.new(batch_size: 2_000_000, file_or_process: process)
     Zinzout.zin(filename).each do |line|
       histline = JSON.parse(line, create_additions: true)
       case histline
@@ -120,6 +142,77 @@ class HathifileHistory
     end
     hh.logger.info waypoint.final_line
     hh
+  end
+
+  def missing_htids
+    htids = Set.new
+    mrd   = most_recent_date
+    @htid_history.each_pair do |htid, hist|
+      htids << htid unless hist.most_recent_appearance == mrd
+    end
+    htids
+  end
+
+  def remove_missing_htids!
+    missing = missing_htids
+    missing.each { |mhtid| @htid_history.delete(mhtid) }
+    @recid_history.each do |recid, hist|
+      hist.appearances.reject! { |x| missing.include? hist.id }
+    end
+    self
+  end
+
+  def most_recent_date
+    dts = Set.new
+    @htid_history.each_pair do |htid, hist|
+      dts << hist.most_recent_appearance
+    end
+    dts.max
+  end
+
+
+  def redirects
+    yyyymm = most_recent_date
+    already_redirected = Set.new
+    redirects          = {}
+
+    htids.each_pair do |htid, htid_history|
+      next unless htid_history.moved?
+
+      current_record = current_record(htid)
+
+      # If the most recent record doesn't exist in the latest dump,
+      # we're certainly not going to redirect to it, so we just
+      # move on.
+
+      if current_record.most_recent_appearance != yyyymm
+        logger.warn "Got a dead-end for #{htid} dying out at record #{current_record.id}, last seen on #{current_record.most_recent_appearance}"
+        next
+      end
+
+      # Which HTIDs are currently on the same record as this one?
+      current_record_htids = current_record.htids
+
+      # For each record this HTID _used_ to be on, see if all those HTIDs moved to the
+      # same place. If so, print out a redirect
+      #
+      htid_history.rec_ids.each do |recid|
+         next if already_redirected.include?(recid) # already dealt with
+
+        record_history = recid_history(recid)
+        if record_history.most_recent_appearance == yyyymm # still exists
+          next
+        end
+
+        # If all the HTIDs that were on this record are now on the same final-landing-place record,
+        # we can create a redirect
+        if record_history.ids.subset?(current_record_htids)
+          redirects[recid] = current_record.id
+          already_redirected << recid
+        end
+      end
+    end
+    redirects
   end
 
   private
