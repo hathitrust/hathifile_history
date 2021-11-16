@@ -47,9 +47,8 @@ class GenericHistory
       @json_create_id         => @classname
     }.to_json(*args)
   rescue => e
-    require 'pry'; binding.pry
+    logger.error "Failed to write #{@id}: #{e}"
   end
-
 
   def self.json_create(obj)
     n = self.new(obj['id'.freeze])

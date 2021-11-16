@@ -80,8 +80,8 @@ class HathifileHistory
   end
 
   def self.yyyymm_from_filename(filename)
-    fulldate  = filename.gsub(/\D/, '')
-    yyyymm = Integer(fulldate[0..-3])
+    fulldate = filename.gsub(/\D/, '')
+    yyyymm   = Integer(fulldate[0..-3])
   end
 
   def yyyymm_from_filename(*args)
@@ -170,11 +170,10 @@ class HathifileHistory
     dts.max
   end
 
-
   def redirects
-    yyyymm = most_recent_date
-    already_redirected = Set.new
+    yyyymm             = most_recent_date
     redirects          = {}
+    not_redirects = Set.new
 
     htids.each_pair do |htid, htid_history|
       next unless htid_history.moved?
@@ -197,10 +196,11 @@ class HathifileHistory
       # same place. If so, print out a redirect
       #
       htid_history.rec_ids.each do |recid|
-         next if already_redirected.include?(recid) # already dealt with
+        next if not_redirects.include?(recid)
 
         record_history = recid_history(recid)
         if record_history.most_recent_appearance == yyyymm # still exists
+          not_redirects << recid
           next
         end
 
@@ -209,6 +209,9 @@ class HathifileHistory
         if record_history.ids.subset?(current_record_htids)
           redirects[recid] = current_record.id
           already_redirected << recid
+        else
+          redirects.delete(recid) # remove any incorrectly-added redirect
+          not_redirects << recid
         end
       end
     end

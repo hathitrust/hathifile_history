@@ -99,17 +99,51 @@ bundle exec jruby -J-Xmx48G add_monthly_and_dump_redirects.rb
 ## How redirects are computed
 
 We reduce the computation of redirects to say that `record-A` should 
-redirect to `record-B` iff every record that has ever been on `record-A` 
+redirect to `record-B` iff every HTID that has ever been on `record-A` 
 is currently on `record-B`.
 
 To find these:
 
-* Eliminate HTIDs that don't exist anymore to simplify the calculations
-* Get a list of all the HTIDs that have ever moved
+* Get a list of all the HTIDs that have ever moved. All the records that it 
+  _used to_ live on (i.e., records that it has _moved from_) are candidates 
+  for a record redirect.
 * For each moved HTID
   * Figure out where it currently lives (`record_current`)
   * For every _other_ record it's ever lived on `record_past`, see if 
     `record_current.htids.superset?(record_past.htids)`
   * If so, set up a redirect from `record_past` to `record_current`
+
+### Dealing with double-jumps
+
+This is documented here because it's a little confusing to think through.
+
+We don't actually track what the _current_ contents of a record 
+are, only what's been there ever-at-all throughout its history.
+
+If we have:
+  * rec1 = htid_1, htid2
+  * htid_1 => rec2
+  * htid_2 => rec2
+  * htid_1 => rec3
+  * ...so that `rec1=>[], rec2=>[htid_2], rec3=>[htid_1]`
+
+When we do the check to see if `rec1.htids` is a subset of `rec2.htids` 
+it'll look true, because what we're actually checking is `rec1.htids.
+subset? rec2.every_htid_that_has_ever_been_here`. But `htid_2` has moved 
+on to `rec3`, so this is incorrect.
+
+The "solution" (put in quotes because it's a sad hack) is to keep track of 
+records that are _definitely not_ sources for redirect, and set up the 
+following rules.
+
+* A redirect is never set up if the source record id is in `not_redirects`
+* Each time we find a source record that's not a redirect:
+  * Add it to `not_redirects`
+  * Remove any existing redirect with that source record.
+
+
+This is messier than it needs to be, but I haven't figured out a better 
+way that doesn't seem computationally ridiculous.
+
 
 
