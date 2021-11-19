@@ -187,11 +187,14 @@ class Records
   end
 
   # Given an ndj file produced by #dump_to_ndj, read it back in to a new Records object
-  def self.load_from_ndj(file_from_dump_to_ndj)
+  def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new(STDOUT))
     recs = self.new
+    wp = Waypoint.new(batch_size: 500_000, file_or_process: "load #{file_from_dump_to_ndj}")
     Zinzout.zin(file_from_dump_to_ndj).each do |line|
       record = JSON.parse(line, create_additions: true)
       recs.add_record(record)
+      wp.incr
+      wp.on_batch { logger.info wp.batch_line }
     end
     recs
   end
@@ -280,6 +283,8 @@ class Records
     end
   end
 end
+
+__END__
 
 recs = Records.new
 

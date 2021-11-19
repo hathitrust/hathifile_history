@@ -1,8 +1,10 @@
 $:.unshift 'lib'
-require 'hathifile_history'
+load 'rec_only_test.rb'
 require 'date'
 
-hh = HathifileHistory.new
+STDOUT.sync = true
+
+hh = Records.new
 
 # Need to start from a mid-point? Load up the latest version here
 # hh = HathifileHistory.new_from_ndj('history_files/202108.ndj.gz')
@@ -10,7 +12,7 @@ hh = HathifileHistory.new
 current_year_str = DateTime.now.year.to_s
 
 last_good_history_file = ''
-('2016'..current_year_str).each do |year|
+('2008'..current_year_str).each do |year|
   ('01'..'12').each do |month|
     yearmonth = "#{year}#{month}"
 
@@ -29,7 +31,7 @@ last_good_history_file = ''
     hh.add_monthly(filename)
 
     # Dump periodically in case things go haywire
-    if yearmonth.to_i % 4 == 0
+    if month == "12"
       hh.dump_to_ndj(last_good_history_file)
     end
   end

@@ -3,20 +3,19 @@
 $LOAD_PATH.unshift 'lib'
 require 'pathname'
 require 'date'
-require 'hathifile_history'
 require 'logger'
+load 'rec_only_test.rb'
 
 
 STDOUT.sync = true
-
 LOGGER = Logger.new(STDOUT)
 
 here = Pathname.new(__dir__)
 
 infile = ARGV.shift
-outfile = ARGV.shift
+outfile = ARGV.shift # optional
 
-yyyymm ||= HathifileHistory.yyyymm_from_filename(infile)
+yyyymm ||= Records.yyyymm_from_filename(infile)
 yyyymm = Integer(yyyymm)
 
 outfile ||= here + "history_files" + "#{yyyymm}.ndj.gz"
@@ -40,17 +39,26 @@ if File.exists?(outfile)
   exit 1
 end
 
-hh = HathifileHistory.new_from_ndj(load_file)
-hh.add_monthly(infile)
+
+# Get the old stuff
+recs = Records.load_from_ndj(load_file)
+
+# Add the new stuff
+recs.add_monthly(infile)
+
+# ...and dump it out again
 hh.dump_to_ndj(outfile)
 
-LOGGER.info "Remove missing HTIDs before further analysis"
-hh.remove_missing_htids!
+LOGGER.info "Compute current record contents"
+recs.compute_current_sets!(recs.newest_load)
 
-LOGGER.info "Derive and dump redirect pairs to #{redirects_file}"
-File.open(redirects_file, 'w') do |out|
-  hh.redirects.each_pair do |source, sink|
-    out.puts "#{source}\t#{sink}"
+LOGGER.info "Remove missing HTIDs before further analysis"
+recs.remove_dead_htids!
+
+LOGGER.info "Dump redirects to #{redirects_file}"
+Zinzout.zout(redirects_file) do |out|
+  recs.redirects.each_pair do |source, sink|
+    out.puts "%09d\t%09d" % [source, sink]
   end
 end
 
