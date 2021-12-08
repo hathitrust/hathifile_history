@@ -6,7 +6,7 @@ require 'set'
 require 'waypoint'
 require 'json'
 
-class HistoryEntry
+class HTIDHistoryEntry
   attr_accessor :htid, :appeared_on, :last_seen_here
 
   def initialize(htid:, appeared_on:, last_seen_here:)
@@ -55,7 +55,7 @@ class Record
     if entries[htid]
       entries[htid].last_seen_here = yyyymm
     else
-      entries[htid] = HistoryEntry.new(htid: htid, appeared_on: yyyymm, last_seen_here: yyyymm)
+      entries[htid] = HTIDHistoryEntry.new(htid: htid, appeared_on: yyyymm, last_seen_here: yyyymm)
     end
   end
 
@@ -119,6 +119,8 @@ class Records
     @logger             = Logger.new(STDOUT)
   end
 
+  # @pararm [Integer] recid The record id as an integer
+  # @return [Record] the Record with that id
   def [](recid)
     @records[recid]
   end
@@ -126,6 +128,8 @@ class Records
   # Optionally (but usually) derive the YYYYMM from the given hathifile
   # and add all the hathifile lines
   # @param [String] hathifile The name of the hathifile to load
+  # @param [Integer] yyyymm The Year/Month as a six-digit integer (like 202111)
+  # @return [Records] self
   def add_monthly(hathifile, yyyymm: nil)
     yyyymm ||= yyyymm_from_filename(hathifile)
 
@@ -145,6 +149,9 @@ class Records
   # Some hathifiles have errors (ususally unicode problems),
   # in which case we cast the hathifile_line to act as a binary string
   # and try to parse out the columns we need again.
+  # @param [String] hathifile_line A line from a hathifile
+  # @param [Integer] yyyymm The Year/Month of that hathifile as a six-digit integer (like 202111)
+  # @return [Records] self
   def add_hathifile_line_by_date(hathifile_line, yyyymm)
     errored = false
     begin
@@ -152,17 +159,22 @@ class Records
       add(htid: htid, recid: recid, yyyymm: yyyymm)
     rescue => e
       if !errored
-        errored = true
-        hathifile_line    = hathifile_line.b # probably bad unicode, so just treat it as binary
+        errored        = true
+        hathifile_line = hathifile_line.b # probably bad unicode, so just treat it as binary
         retry
       else
         logger.warn "(#{e}) -- #{hathifile_line}"
       end
     end
+    self
   end
 
   # Tell the record identified by recid to "see" the given htid.
   # Creates a new Record if need be.
+  # @param [String] htid The htid seen in the hathfile
+  # @param [Integer] recid The record on which it was seen
+  # @param [Integer] yyyymm The year/month on which it was seen
+  # @return [Records] self
   def add(htid:, recid:, yyyymm:)
     @newest_load    = yyyymm if yyyymm > @newest_load
     @records[recid] ||= Record.new(recid)
@@ -170,7 +182,8 @@ class Records
     self
   end
 
-  #@param [Record] rec A fully-hydrated record
+  # @param [Record] rec A fully-hydrated record, probably loaded from a save file
+  # @return [Records] self
   def add_record(rec)
     @newest_load        = rec.most_recently_seen if @newest_load < rec.most_recently_seen
     @records[rec.recid] = rec
@@ -182,14 +195,17 @@ class Records
   def ids_from_line(line)
     htid, recid_str = line.chomp.split(/\t/, 4).values_at(0, 3)
     htid.freeze
-    recid = intify(recid_str)
+    recid = intify_record_id(recid_str)
     [htid, recid]
   end
 
   # Given an ndj file produced by #dump_to_ndj, read it back in to a new Records object
+  # @param [String] filename from a previous call to #dump_to_ndj
+  # @param [#info] logger A logger
+  # @return [Records] a full Records object with all that data
   def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new(STDOUT))
     recs = self.new
-    wp = Waypoint.new(batch_size: 500_000, file_or_process: "load #{file_from_dump_to_ndj}")
+    wp   = Waypoint.new(batch_size: 500_000, file_or_process: "load #{file_from_dump_to_ndj}")
     Zinzout.zin(file_from_dump_to_ndj).each do |line|
       record = JSON.parse(line, create_additions: true)
       recs.add_record(record)
@@ -199,6 +215,8 @@ class Records
     recs
   end
 
+  # Dump the entire Records object to newline-delimited json for safe keeping
+  # @param [String] outfile
   def dump_to_ndj(outfile)
     process = "dump to #{outfile}"
     logger.info process
@@ -232,6 +250,7 @@ class Records
     @current_record_for[htid]
   end
 
+  # @return [Hash] Valid redirect pairs of the form old_dead_record -> current_record
   def redirects
     redirs = {}
     each_deleted_record do |rec|
@@ -252,18 +271,20 @@ class Records
     end
   end
 
-  def self.yyyymm_from_filename(filename)
-    fulldate = filename.gsub(/\D/, '')
-    yyyymm   = Integer(fulldate[0..-3])
-  end
-
-  # Needed because we get numbers with leading zeros, which ruby
+  # Needed because we get record ids with leading zeros, which ruby
   # really wants to interpret as oct
   #@param [String] str a string of digits
   #@return [Integer] The integer equivalent.
-  def intify(str)
+  def intify_record_id(str)
     str.gsub!(LEADING_ZEROS, EMPTY)
     str.to_i
+  end
+
+  # @param [String] Filename of the form hathi_*_20111101*
+  # @return [Integer] A six digit string of the form YYYYMM representing the year/month
+  def self.yyyymm_from_filename(filename)
+    fulldate = filename.gsub(/\D/, '')
+    yyyymm   = Integer(fulldate[0..-3])
   end
 
   def yyyymm_from_filename(*args)
