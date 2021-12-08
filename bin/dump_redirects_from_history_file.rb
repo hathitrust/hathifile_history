@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
-$LOAD_PATH.unshift 'lib'
 require 'pathname'
+here = Pathname.new(__dir__)
+libdir = here.parent + 'lib'
+$LOAD_PATH.unshift libdir
 require 'date'
 require 'logger'
-load 'rec_only_test.rb'
+require 'hathifile_history'
+
 
 STDOUT.sync = true
 LOGGER = Logger.new(STDOUT)
@@ -13,7 +16,7 @@ ndj_file = ARGV.shift
 redirects_file= ARGV.shift
 
 LOGGER.info "Starting load of #{ndj_file}"
-recs = Records.load_from_ndj(ndj_file)
+recs = HathifileHistory::Records.load_from_ndj(ndj_file)
 
 LOGGER.info "Compute current record contents"
 recs.compute_current_sets!(recs.newest_load)
