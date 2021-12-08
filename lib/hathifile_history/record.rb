@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
-require_relative 'htid_history_entry'
+require_relative "htid_history_entry"
 
-require 'json'
-require 'set'
+require "json"
+require "set"
 
 module HathifileHistory
   class Record
     attr_accessor :recid, :entries, :most_recently_seen, :current_entries, :current_htids
 
     def initialize(recid)
-      @recid              = recid
-      @entries            = {}
+      @recid = recid
+      @entries = {}
       @most_recently_seen = 0
-      @current_entries    = Set.new
-      @current_htids      = Set.new
+      @current_entries = Set.new
+      @current_htids = Set.new
 
       @json_create_id = JSON.create_id.freeze
-      @classname      = self.class.name.freeze
+      @classname = self.class.name.freeze
     end
 
     def seen_on_or_after?(yyyymm)
@@ -35,7 +35,7 @@ module HathifileHistory
 
     def compute_current!(yyyymm)
       @current_entries = Set.new
-      @current_htids   = Set.new
+      @current_htids = Set.new
 
       # Nothing is "current" if the record doesn't even exist anymore
       return unless most_recently_seen == yyyymm
@@ -52,7 +52,7 @@ module HathifileHistory
       entries.delete(htid)
     end
 
-    #@param [Hash] current_records The hash of htid-to-record created by calls
+    # @param [Hash] current_records The hash of htid-to-record created by calls
     # to Records#add or Records#add_record
     def remove_dead_htids!(current_records)
       entries.each_pair do |htid, hist|
@@ -62,20 +62,19 @@ module HathifileHistory
 
     def to_json(*args)
       {
-        recid:          @recid,
-        mrs:            @most_recently_seen,
-        entries:        entries,
+        :recid => @recid,
+        :mrs => @most_recently_seen,
+        :entries => entries,
         @json_create_id => @classname
       }.to_json(*args)
     end
 
-    #@param [Hash] Result of json-parsing data from the ndj
+    # @param [Hash] Result of json-parsing data from the ndj
     def self.json_create(rec)
-      r                    = self.new(rec['recid'])
-      r.most_recently_seen = rec['mrs']
-      r.entries            = rec['entries']
+      r = new(rec["recid"])
+      r.most_recently_seen = rec["mrs"]
+      r.entries = rec["entries"]
       r
     end
   end
-
 end

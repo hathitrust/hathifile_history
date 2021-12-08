@@ -1,31 +1,29 @@
 # frozen_string_literal: true
 
-require 'json'
-require_relative 'htid_history_entry'
-require_relative 'record'
-require 'milemarker'
-require 'logger'
-require 'zinzout'
-require 'set'
+require "json"
+require_relative "htid_history_entry"
+require_relative "record"
+require "milemarker"
+require "logger"
+require "zinzout"
+require "set"
 
 module HathifileHistory
-
   # Records is the umbrella object -- essentially a big list of records with data about
   # which HT items have been on it, when they appeared, and when they last showed up in
   # a Hathifile
   class Records
-
-    LEADING_ZEROS = /\A0+/.freeze
-    EMPTY         = ''.freeze
+    LEADING_ZEROS = /\A0+/
+    EMPTY = ""
 
     attr_accessor :logger, :newest_load
     attr_reader :records
 
     def initialize
       @current_record_for = {}
-      @records            = {}
-      @newest_load        = 0
-      @logger             = Logger.new(STDOUT)
+      @records = {}
+      @newest_load = 0
+      @logger = Logger.new($stdout)
     end
 
     # @pararm [Integer] recid The record id as an integer
@@ -67,7 +65,7 @@ module HathifileHistory
         add(htid: htid, recid: recid, yyyymm: yyyymm)
       rescue => e
         if !errored
-          errored        = true
+          errored = true
           hathifile_line = hathifile_line.b # probably bad unicode, so just treat it as binary
           retry
         else
@@ -84,7 +82,7 @@ module HathifileHistory
     # @param [Integer] yyyymm The year/month on which it was seen
     # @return [Records] self
     def add(htid:, recid:, yyyymm:)
-      @newest_load    = yyyymm if yyyymm > @newest_load
+      @newest_load = yyyymm if yyyymm > @newest_load
       @records[recid] ||= Record.new(recid)
       @records[recid].see(htid, yyyymm)
       self
@@ -93,13 +91,13 @@ module HathifileHistory
     # @param [Record] rec A fully-hydrated record, probably loaded from a save file
     # @return [Records] self
     def add_record(rec)
-      @newest_load        = rec.most_recently_seen if @newest_load < rec.most_recently_seen
+      @newest_load = rec.most_recently_seen if @newest_load < rec.most_recently_seen
       @records[rec.recid] = rec
       self
     end
 
-    #@param [String] line A hathifile_line from a hathifile
-    #@return [Array<String, Integer>] The htid and recid in this hathifile_line
+    # @param [String] line A hathifile_line from a hathifile
+    # @return [Array<String, Integer>] The htid and recid in this hathifile_line
     def ids_from_line(line)
       htid, recid_str = line.chomp.split(/\t/, 4).values_at(0, 3)
       htid.freeze
@@ -111,9 +109,9 @@ module HathifileHistory
     # @param [String] filename from a previous call to #dump_to_ndj
     # @param [#info] logger A logger
     # @return [Records] a full Records object with all that data
-    def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new(STDOUT))
-      recs = self.new
-      mm   = Milemarker.new(batch_size: 500_000, name: "load #{file_from_dump_to_ndj}", logger: logger)
+    def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new($stdout))
+      recs = new
+      mm = Milemarker.new(batch_size: 500_000, name: "load #{file_from_dump_to_ndj}", logger: logger)
       Zinzout.zin(file_from_dump_to_ndj).each do |line|
         record = JSON.parse(line, create_additions: true)
         recs.add_record(record)
@@ -179,8 +177,8 @@ module HathifileHistory
 
     # Needed because we get record ids with leading zeros, which ruby
     # really wants to interpret as oct
-    #@param [String] str a string of digits
-    #@return [Integer] The integer equivalent.
+    # @param [String] str a string of digits
+    # @return [Integer] The integer equivalent.
     def intify_record_id(str)
       str.gsub!(LEADING_ZEROS, EMPTY)
       str.to_i
@@ -189,8 +187,8 @@ module HathifileHistory
     # @param [String] Filename of the form hathi_*_20111101*
     # @return [Integer] A six digit string of the form YYYYMM representing the year/month
     def self.yyyymm_from_filename(filename)
-      fulldate = filename.gsub(/\D/, '')
-      yyyymm   = Integer(fulldate[0..-3])
+      fulldate = filename.gsub(/\D/, "")
+      yyyymm = Integer(fulldate[0..-3])
       if yyyymm.nil?
         LOGGER.error "Can't get yyyymm from filename '#{filename}'. Aborting"
         exit 1
