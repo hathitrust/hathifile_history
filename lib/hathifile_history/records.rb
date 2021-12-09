@@ -39,8 +39,8 @@ module HathifileHistory
     # @return [Records] self
     def add_monthly(hathifile, yyyymm: nil)
       yyyymm ||= yyyymm_from_filename(hathifile)
-
-      process_name = "add from #{hathifile}"
+      basename = Pathname.new(hathifile).basename.to_s
+      process_name = "add from #{basename}"
       logger.info process_name
       mm = Milemarker.new(batch_size: 2_000_000, name: process_name, logger: logger)
       Zinzout.zin(hathifile).each do |line|
@@ -109,9 +109,12 @@ module HathifileHistory
     # @param [String] filename from a previous call to #dump_to_ndj
     # @param [#info] logger A logger
     # @return [Records] a full Records object with all that data
-    def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new($stdout))
-      recs = new
-      mm = Milemarker.new(batch_size: 500_000, name: "load #{file_from_dump_to_ndj}", logger: logger)
+    def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new(STDOUT))
+      recs = self.new
+      basename = Pathname.new(file_from_dump_to_ndj).basename
+      mm   = Milemarker.new(batch_size: 500_000, name: "load #{basename}", logger: logger)
+      logger.info "Loading #{file_from_dump_to_ndj}"
+
       Zinzout.zin(file_from_dump_to_ndj).each do |line|
         record = JSON.parse(line, create_additions: true)
         recs.add_record(record)
@@ -124,7 +127,8 @@ module HathifileHistory
     # Dump the entire Records object to newline-delimited json for safe keeping
     # @param [String] outfile
     def dump_to_ndj(outfile)
-      process = "dump to #{outfile}"
+      basename = Pathname.new(outfile).basename.to_s
+      process = "dump to #{basename}"
       logger.info process
       mm = Milemarker.new(batch_size: 2_000_000, name: process, logger: logger)
       Zinzout.zout(outfile) do |out|
@@ -142,7 +146,6 @@ module HathifileHistory
       mm = Milemarker.new(batch_size: 500_000, name: "compute_current_sets", logger: logger)
       @records.each_pair do |recid, rec|
         next unless rec.seen_on_or_after?(yyyymm)
-
         rec.compute_current!(yyyymm)
         rec.current_entries.each { |hist| @current_record_for[hist.htid] = rec }
         mm.increment_and_log_batch_line

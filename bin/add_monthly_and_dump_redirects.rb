@@ -4,6 +4,7 @@ require 'pathname'
 here = Pathname.new(__dir__)
 libdir = here.parent + 'lib'
 $LOAD_PATH.unshift libdir
+root = here.parent
 require 'date'
 require 'logger'
 require 'hathifile_history'
@@ -23,9 +24,9 @@ mm          = yyyymm.to_s[4..5]
 last_month  = DateTime.parse("#{yyyy}-#{mm}-01").prev_month
 last_yyyymm = last_month.strftime '%Y%m'
 
-old_history_file ||= here + "history_files" + "#{last_yyyymm}.ndj.gz"
-new_history_file ||= here + "history_files" + "#{yyyymm}.ndj.gz"
-redirects_file   ||= here + "redirects" + "redirects_#{yyyymm}.txt"
+old_history_file ||= root + "history_files" + "#{last_yyyymm}.ndj.gz"
+new_history_file ||= root + "history_files" + "#{yyyymm}.ndj.gz"
+redirects_file   ||= root + "redirects" + "redirects_#{yyyymm}.txt"
 
 unless File.exist?(old_history_file)
   LOGGER.error "Can't find #{old_history_file} for loading historical data. Aborting."
@@ -38,7 +39,7 @@ if File.exist?(new_history_file)
 end
 
 # Get the old stuff
-recs = Records.load_from_ndj(old_history_file)
+recs = HathifileHistory::Records.load_from_ndj(old_history_file)
 
 # Add the new stuff
 recs.add_monthly(hathifile)
