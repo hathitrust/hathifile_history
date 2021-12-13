@@ -26,7 +26,7 @@ last_yyyymm = last_month.strftime '%Y%m'
 
 old_history_file ||= root + "history_files" + "#{last_yyyymm}.ndj.gz"
 new_history_file ||= root + "history_files" + "#{yyyymm}.ndj.gz"
-redirects_file   ||= root + "redirects" + "redirects_#{yyyymm}.txt"
+redirects_file   ||= root + "redirects" + "redirects_#{yyyymm}.txt.gz"
 
 unless File.exist?(old_history_file)
   LOGGER.error "Can't find #{old_history_file} for loading historical data. Aborting."
