@@ -13,8 +13,8 @@ bundle exec ruby bin/add_monthly_and_dump_redirect.rb \
 In general, the only script we really need is
 `add_monthly_and_dump_redirects.rb`. It does the following:
 
-* Take a path of the form `/blah/blah/hathi_full_YYYYMMDD.txt.gz`
-* Figure out current/previous month (and thus filenames) from the passed 
+* Find the most recent full hathfiles dump in `/.../archive/hathi_full_YYYYMMDD.txt.gz`
+* Figure out current/previous month (and thus filenames) from the found 
   filename 
 * Load up the data from `history_file/#{yyyymm_prev}.ndj.gz`
 * Add the data from the passed file
@@ -23,9 +23,9 @@ In general, the only script we really need is
   to `redirects/redirects_#{yyyymm_current}.txt` as two-column,
   tab-delimited lines of the form `old_dead_record    current_record`
 
-`add_monthly_and_dump_redirects.rb` has two optional arguments:
-  * the name of the history file to dump
-  * the name of the redirect file to dump
+`add_monthly_and_dump_redirects.rb` can optionally take all those things as arguments;
+run with `-h` to see them.
+
   
 ## Other scripts
 
