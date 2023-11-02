@@ -1,7 +1,18 @@
 # Catalog Redirect: Generate hathifile history and compute record redirects
 
 We want to generate redirects for catalog records that have been completely
-replaced by 
+replaced by.
+
+## Developer Setup
+
+```
+git clone <URL/protocol of choice>
+cd hathifile_history
+docker-compose build
+docker-compose run --rm test bin/setup
+docker-compose run --rm test
+docker-compose run --rm test bundle exec standardrb
+```
 
 ## Basic usage: add_monthly_and_dump_redirects.rb
 
