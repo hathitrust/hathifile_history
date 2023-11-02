@@ -99,7 +99,7 @@ module HathifileHistory
     # @param [String] line A hathifile_line from a hathifile
     # @return [Array<String, Integer>] The htid and recid in this hathifile_line
     def ids_from_line(line)
-      htid, recid_str = line.chomp.split(/\t/, 4).values_at(0, 3)
+      htid, recid_str = line.chomp.split(/\t/, 5).values_at(0, 3)
       htid.freeze
       recid = intify_record_id(recid_str)
       [htid, recid]
@@ -183,17 +183,16 @@ module HathifileHistory
     # @param [String] str a string of digits
     # @return [Integer] The integer equivalent.
     def intify_record_id(str)
-      str.gsub!(LEADING_ZEROS, EMPTY)
-      str.to_i
+      str.gsub(LEADING_ZEROS, EMPTY).to_i
     end
 
     # @param [String] Filename of the form hathi_*_20111101*
     # @return [Integer] A six digit string of the form YYYYMM representing the year/month
-    def self.yyyymm_from_filename(filename)
+    def self.yyyymm_from_filename(filename, logger: Logger.new($stdout))
       fulldate = filename.gsub(/\D/, "")
-      yyyymm = Integer(fulldate[0..-3])
+      yyyymm = Integer(fulldate[0..-3], exception: false)
       if yyyymm.nil?
-        LOGGER.error "Can't get yyyymm from filename '#{filename}'. Aborting"
+        logger.error "Can't get yyyymm from filename '#{filename}'. Aborting"
         exit 1
       end
       yyyymm
