@@ -19,8 +19,8 @@ module HathifileHistory
       @last_seen_here >= yyyymm
     end
 
-    def to_json(*args)
-      {:htid => @htid, :app => @appeared_on, :lsh => @last_seen_here, @json_create_id => @classname}.to_json(*args)
+    def to_json(*)
+      {:htid => @htid, :app => @appeared_on, :lsh => @last_seen_here, @json_create_id => @classname}.to_json(*)
     end
 
     # @param [Hash] hist result of json-parsing the ndj hathifile_line

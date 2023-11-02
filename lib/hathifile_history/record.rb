@@ -3,7 +3,6 @@
 require_relative "htid_history_entry"
 
 require "json"
-require "set"
 
 module HathifileHistory
   class Record
@@ -60,13 +59,13 @@ module HathifileHistory
       end
     end
 
-    def to_json(*args)
+    def to_json(*)
       {
         :recid => @recid,
         :mrs => @most_recently_seen,
         :entries => entries,
         @json_create_id => @classname
-      }.to_json(*args)
+      }.to_json(*)
     end
 
     # @param [Hash] Result of json-parsing data from the ndj

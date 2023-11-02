@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require "json"
-require_relative "htid_history_entry"
-require_relative "record"
 require "milemarker"
 require "logger"
 require "zinzout"
-require "set"
+
+require_relative "htid_history_entry"
+require_relative "record"
 
 module HathifileHistory
   # Records is the umbrella object -- essentially a big list of records with data about
@@ -99,7 +99,7 @@ module HathifileHistory
     # @param [String] line A hathifile_line from a hathifile
     # @return [Array<String, Integer>] The htid and recid in this hathifile_line
     def ids_from_line(line)
-      htid, recid_str = line.chomp.split(/\t/, 5).values_at(0, 3)
+      htid, recid_str = line.chomp.split("\t", 5).values_at(0, 3)
       htid.freeze
       recid = intify_record_id(recid_str)
       [htid, recid]
@@ -109,10 +109,10 @@ module HathifileHistory
     # @param [String] filename from a previous call to #dump_to_ndj
     # @param [#info] logger A logger
     # @return [Records] a full Records object with all that data
-    def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new(STDOUT))
-      recs = self.new
+    def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new($stdout))
+      recs = new
       basename = Pathname.new(file_from_dump_to_ndj).basename
-      mm   = Milemarker.new(batch_size: 500_000, name: "load #{basename}", logger: logger)
+      mm = Milemarker.new(batch_size: 500_000, name: "load #{basename}", logger: logger)
       logger.info "Loading #{file_from_dump_to_ndj}"
 
       Zinzout.zin(file_from_dump_to_ndj).each do |line|
@@ -198,8 +198,8 @@ module HathifileHistory
       yyyymm
     end
 
-    def yyyymm_from_filename(*args)
-      self.class.yyyymm_from_filename(*args)
+    def yyyymm_from_filename(*)
+      self.class.yyyymm_from_filename(*)
     end
 
     # A convenience method to get an iterator for only deleted records
