@@ -3,6 +3,7 @@
 require_relative "htid_history_entry"
 
 require "json"
+require "set"
 
 module HathifileHistory
   class Record
