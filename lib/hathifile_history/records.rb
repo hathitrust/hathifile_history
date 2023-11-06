@@ -198,8 +198,8 @@ module HathifileHistory
       yyyymm
     end
 
-    def yyyymm_from_filename(*)
-      self.class.yyyymm_from_filename(*)
+    def yyyymm_from_filename(*args)
+      self.class.yyyymm_from_filename(*args)
     end
 
     # A convenience method to get an iterator for only deleted records
