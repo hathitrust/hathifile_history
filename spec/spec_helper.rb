@@ -33,6 +33,7 @@ FIXTURES_DIR = Pathname.new(__dir__).realdirpath + "fixtures"
 
 TEST_RECID = "000"
 TEST_RECID_1 = "001"
+TEST_BOGUS_RECID = "BOGUS"
 TEST_HTID = "test.000"
 TEST_HTID_1 = "test.001"
 TEST_YYYYMM = 202301

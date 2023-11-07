@@ -8,9 +8,7 @@ UNPARSEABLE_LINE = ""
 
 RSpec.describe HathifileHistory::Records do
   let(:records) do
-    recs = described_class.new
-    recs.logger = NullLogger.new $stdout
-    recs
+    described_class.new(logger: NullLogger.new($stdout))
   end
 
   describe "#initialize" do
@@ -24,10 +22,20 @@ RSpec.describe HathifileHistory::Records do
   end
 
   describe "#[]" do
-    it "gets a record" do
-      new_rec = HathifileHistory::Record.new TEST_RECID
-      recs = records.add_record(new_rec)
-      expect(recs[TEST_RECID]).to be_a HathifileHistory::Record
+    context "with a valid record id" do
+      it "gets a record" do
+        new_rec = HathifileHistory::Record.new TEST_RECID
+        recs = records.add_record(new_rec)
+        expect(recs[TEST_RECID]).to be_a HathifileHistory::Record
+      end
+    end
+
+    context "with a bogus record id" do
+      it "gets a record" do
+        new_rec = HathifileHistory::Record.new TEST_RECID
+        recs = records.add_record(new_rec)
+        expect(recs[TEST_BOGUS_RECID]).to be_nil
+      end
     end
   end
 
@@ -166,23 +174,15 @@ RSpec.describe HathifileHistory::Records do
       expect(redirects).not_to be_empty
       expect(redirects.keys.all? { |x| x.instance_of?(Integer) }).to eq true
       expect(redirects.values.all? { |x| x.instance_of?(Integer) }).to eq true
-      # puts "REDIRECTS: #{recs.redirects.inspect}"
     end
   end
 
   describe "#remove_dead_htids!" do
-    context "without previous call to #compute_current_sets!" do
-      it "raises" do
-        recs = records.add(htid: TEST_HTID, recid: TEST_RECID, yyyymm: TEST_YYYYMM)
-        expect { recs.remove_dead_htids! }.to raise_error StandardError
-      end
-    end
-
     context "with previous call to #compute_current_sets!" do
-      it "does not raise" do
+      it "populates current_record_for" do
         recs = records.add(htid: TEST_HTID, recid: TEST_RECID, yyyymm: TEST_YYYYMM)
-        recs.compute_current_sets!
-        expect { recs.remove_dead_htids! }.not_to raise_error
+        recs.remove_dead_htids!
+        expect(recs.current_record_for(TEST_HTID)).not_to be_nil
       end
     end
   end
@@ -205,8 +205,6 @@ RSpec.describe HathifileHistory::Records do
 
     context "with an invalid filename" do
       it "raises" do
-        # Doesn't look like it ever actually hits exit(1)
-        # May need a rewrite
         expect { described_class.yyyymm_from_filename "blah" }.to raise_error(SystemExit)
       end
     end
@@ -221,8 +219,6 @@ RSpec.describe HathifileHistory::Records do
 
     context "with an invalid filename" do
       it "raises" do
-        # Doesn't look like it ever actually hits exit(1)
-        # May need a rewrite
         expect { records.yyyymm_from_filename "blah" }.to raise_error(SystemExit)
       end
     end

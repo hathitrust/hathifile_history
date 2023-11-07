@@ -19,11 +19,11 @@ module HathifileHistory
     attr_accessor :logger, :newest_load
     attr_reader :records
 
-    def initialize
+    def initialize(logger: Logger.new($stdout))
       @current_record_for = {}
       @records = {}
       @newest_load = 0
-      @logger = Logger.new($stdout)
+      @logger = logger
     end
 
     # @pararm [Integer] recid The record id as an integer
@@ -99,7 +99,7 @@ module HathifileHistory
     # @param [String] line A hathifile_line from a hathifile
     # @return [Array<String, Integer>] The htid and recid in this hathifile_line
     def ids_from_line(line)
-      htid, recid_str = line.chomp.split("\t", 5).values_at(0, 3)
+      htid, recid_str = line.chomp.split("\t").values_at(0, 3)
       htid.freeze
       recid = intify_record_id(recid_str)
       [htid, recid]
@@ -172,7 +172,7 @@ module HathifileHistory
     # A "dead" htid is one that doesn't appear in the current load, and hence was never
     # added to @current_record_for
     def remove_dead_htids!
-      raise "Can't call #remove_dead_htids! before calling #compute_current_sets!" if @current_record_for.size == 0
+      compute_current_sets! if @current_record_for.size == 0
       @records.each_pair do |recid, rec|
         rec.remove_dead_htids!(@current_record_for)
       end
