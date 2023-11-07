@@ -1,7 +1,13 @@
 source "https://rubygems.org"
 
-gem "zinzout"
+gem "date_named_file"
 gem "milemarker"
-gem "pry", group: [:development, :test]
-gem "standard", group: [:development, :test]
-gem 'date_named_file'
+gem "zinzout"
+
+group :development, :test do
+  gem "rspec"
+  gem "pry"
+  gem "simplecov"
+  gem "simplecov-lcov"
+  gem "standard"
+end

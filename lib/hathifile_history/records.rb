@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 require "json"
-require_relative "htid_history_entry"
-require_relative "record"
 require "milemarker"
 require "logger"
 require "zinzout"
-require "set"
+
+require_relative "htid_history_entry"
+require_relative "record"
 
 module HathifileHistory
   # Records is the umbrella object -- essentially a big list of records with data about
@@ -19,11 +19,11 @@ module HathifileHistory
     attr_accessor :logger, :newest_load
     attr_reader :records
 
-    def initialize
+    def initialize(logger: Logger.new($stdout))
       @current_record_for = {}
       @records = {}
       @newest_load = 0
-      @logger = Logger.new($stdout)
+      @logger = logger
     end
 
     # @pararm [Integer] recid The record id as an integer
@@ -99,7 +99,7 @@ module HathifileHistory
     # @param [String] line A hathifile_line from a hathifile
     # @return [Array<String, Integer>] The htid and recid in this hathifile_line
     def ids_from_line(line)
-      htid, recid_str = line.chomp.split(/\t/, 4).values_at(0, 3)
+      htid, recid_str = line.chomp.split("\t").values_at(0, 3)
       htid.freeze
       recid = intify_record_id(recid_str)
       [htid, recid]
@@ -109,10 +109,10 @@ module HathifileHistory
     # @param [String] filename from a previous call to #dump_to_ndj
     # @param [#info] logger A logger
     # @return [Records] a full Records object with all that data
-    def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new(STDOUT))
-      recs = self.new
+    def self.load_from_ndj(file_from_dump_to_ndj, logger: Logger.new($stdout))
+      recs = new
       basename = Pathname.new(file_from_dump_to_ndj).basename
-      mm   = Milemarker.new(batch_size: 500_000, name: "load #{basename}", logger: logger)
+      mm = Milemarker.new(batch_size: 500_000, name: "load #{basename}", logger: logger)
       logger.info "Loading #{file_from_dump_to_ndj}"
 
       Zinzout.zin(file_from_dump_to_ndj).each do |line|
@@ -172,7 +172,7 @@ module HathifileHistory
     # A "dead" htid is one that doesn't appear in the current load, and hence was never
     # added to @current_record_for
     def remove_dead_htids!
-      raise "Can't call #remove_dead_htids! before calling #compute_current_sets!" if @current_record_for.size == 0
+      compute_current_sets! if @current_record_for.size == 0
       @records.each_pair do |recid, rec|
         rec.remove_dead_htids!(@current_record_for)
       end
@@ -183,17 +183,16 @@ module HathifileHistory
     # @param [String] str a string of digits
     # @return [Integer] The integer equivalent.
     def intify_record_id(str)
-      str.gsub!(LEADING_ZEROS, EMPTY)
-      str.to_i
+      str.gsub(LEADING_ZEROS, EMPTY).to_i
     end
 
     # @param [String] Filename of the form hathi_*_20111101*
     # @return [Integer] A six digit string of the form YYYYMM representing the year/month
-    def self.yyyymm_from_filename(filename)
+    def self.yyyymm_from_filename(filename, logger: Logger.new($stdout))
       fulldate = filename.gsub(/\D/, "")
-      yyyymm = Integer(fulldate[0..-3])
+      yyyymm = Integer(fulldate[0..-3], exception: false)
       if yyyymm.nil?
-        LOGGER.error "Can't get yyyymm from filename '#{filename}'. Aborting"
+        logger.error "Can't get yyyymm from filename '#{filename}'. Aborting"
         exit 1
       end
       yyyymm

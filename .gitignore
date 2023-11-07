@@ -1,2 +1,4 @@
 /redirects
 /history_files
+/coverage
+.rspec_status
