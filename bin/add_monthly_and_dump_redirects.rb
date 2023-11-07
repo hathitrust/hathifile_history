@@ -47,7 +47,7 @@ end
 
 if hathifile.nil?
   hathifile = DateNamedFile.new('hathi_full_%Y%m%d.txt.gz').in_dir('../archive').last.to_s
-  LOGGER.info "No input file given. Found #{hathifile}"  
+  LOGGER.info "No input file given. Using #{hathifile}"  
 end
 
 yyyymm      ||= HathifileHistory::Records.yyyymm_from_filename(hathifile)
@@ -70,6 +70,9 @@ if File.exist?(new_history_file)
   LOGGER.error "#{new_history_file} already exists. Rename/delete it first"
   exit 1
 end
+
+LOGGER.info "Will read from #{old_history_file}"
+LOGGER.info "Will write to #{new_history_file} and create #{redirects_file}"
 
 # Get the old stuff
 recs = HathifileHistory::Records.load_from_ndj(old_history_file)
