@@ -8,10 +8,10 @@ replaced by.
 ```
 git clone <URL/protocol of choice>
 cd hathifile_history
-docker-compose build
-docker-compose run --rm test bin/setup
-docker-compose run --rm test
-docker-compose run --rm test bundle exec standardrb
+docker compose build
+docker compose run --rm test bin/setup
+docker compose run --rm test
+docker compose run --rm test bundle exec standardrb
 ```
 
 ## Basic usage: add_monthly_and_dump_redirects.rb
@@ -25,8 +25,8 @@ In general, the only script we really need is
 `add_monthly_and_dump_redirects.rb`. It does the following:
 
 * Find the most recent full hathfiles dump in `/.../archive/hathi_full_YYYYMMDD.txt.gz`
-* Figure out current/previous month (and thus filenames) from the found 
-  filename 
+* Figure out current/previous month (and thus filenames) from the found
+  filename
 * Load up the data from `history_file/#{yyyymm_prev}.ndj.gz`
 * Add the data from the passed file
 * Dump the updated data to `history_file/#{yyyymm_current}.ndj.gz`
@@ -37,10 +37,10 @@ In general, the only script we really need is
 `add_monthly_and_dump_redirects.rb` can optionally take all those things as arguments;
 run with `-h` to see them.
 
-  
+
 ## Other scripts
 
-`bin/dump_redirects_from_history_file history_files/202111.ndj.gz 
+`bin/dump_redirects_from_history_file history_files/202111.ndj.gz
 my_redir_file.txt.gz` dumps the redirects from an existing file.
 
 `bin/initial_load.rb` is the script that was used to load all the
@@ -49,12 +49,12 @@ we need to rebuild everything.
 
 ## Performance
 
-Running under ruby 3.x it takes about 30-40mn. 
+Running under ruby 3.x it takes about 30-40mn.
 
 ## Idempotence-ish
 
-Because each history file is kept, it's easy to roll back to 
-a given point and start from there. There's no database so no 
+Because each history file is kept, it's easy to roll back to
+a given point and start from there. There's no database so no
 need to roll back any data or anything complex like that.
 
 ## Using the underlying `HathifileHistory` code
@@ -88,16 +88,16 @@ end
 
 ## Generated files
 
-**redirects_YYYYMM.txt** are tab-delimited files, two columns, each a 
+**redirects_YYYYMM.txt** are tab-delimited files, two columns, each a
 zero-padded record id, `old_dead_record    current_record`
 
-**YYYYMM.ndj.txt** are json dumps of the ginormous data structure that 
-holds all the history data (along with some extra fields to allow easy 
+**YYYYMM.ndj.txt** are json dumps of the ginormous data structure that
+holds all the history data (along with some extra fields to allow easy
 re-creation of the actual ruby classes upon load).
 
 ## Data explanation and memory use
 
-This whole project is just is simple(-ish) code to build up a history of 
+This whole project is just is simple(-ish) code to build up a history of
 
 * which HTIDs were added to which record IDs
 * and when was it added
@@ -112,7 +112,7 @@ this structure:
 ```ruby
 {
   rec_id: "000001046",
-  most_recently_seen: 202111, # record appeared in Nov 2021 hathifile 
+  most_recently_seen: 202111, # record appeared in Nov 2021 hathifile
   entries: {
     "mdp.39015070574192" => {
       appeared: 200808,
@@ -123,15 +123,15 @@ this structure:
 ```
 
 Because the queries we want to do can be pretty expensive in SQL-land,
-and because we have gobs of memory, the whole thing is 
+and because we have gobs of memory, the whole thing is
 stored in memory for processing, and later dumped to newline-delimited JSON
-(`.ndj.gz`) files for loading up again the next month. 
+(`.ndj.gz`) files for loading up again the next month.
 
 
 ## How redirects are computed
 
-We reduce the computation of redirects to say that `record-A` should 
-redirect to `record-B` iff every record that has ever been on `record-A` 
+We reduce the computation of redirects to say that `record-A` should
+redirect to `record-B` iff every record that has ever been on `record-A`
 is currently on `record-B`.
 
 Things we do _not_ redirect:
@@ -146,16 +146,14 @@ To find the redirects:
   split over multiple records.
 * Build a hash of `htid -> current_record` by buzzing through all the
   htids and checking `most_recent_appearance`
-* For each record that was not seen in the most recent load (so, deleted 
+* For each record that was not seen in the most recent load (so, deleted
   records):
-  * 
+  *
 
 
 * Get a list of all the HTIDs that have ever moved
 * For each moved HTID
   * Figure out where it currently lives (`record_current`)
-  * For every _other_ record it's ever lived on `record_past`, see if 
+  * For every _other_ record it's ever lived on `record_past`, see if
     `record_current.htids.superset?(record_past.htids)`
   * If so, set up a redirect from `record_past` to `record_current`
-
-
