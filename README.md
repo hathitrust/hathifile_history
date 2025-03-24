@@ -1,5 +1,7 @@
 # Catalog Redirect: Generate hathifile history and compute record redirects
 
+## NOTE: this repository has been merged with https://github.com/hathitrust/hathifiles and is no longer under independent development.
+
 We want to generate redirects for catalog records that have been completely
 replaced by.
 
